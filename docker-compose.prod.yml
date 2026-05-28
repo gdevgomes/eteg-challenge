@@ -1,0 +1,24 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api-prod
+    container_name: eteg_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web-prod
+    container_name: eteg_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+

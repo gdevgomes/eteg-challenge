@@ -1,0 +1,43 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
+import { AppController } from './app.controller';
+import { ColorsModule } from './colors/colors.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { validateEnv } from './config/env';
+import { Env } from './config/env';
+import { Admin } from './entities/admin.entity';
+import { Color } from './entities/color.entity';
+import { Customer } from './entities/customer.entity';
+import { CustomersModule } from './modules/customers/customers.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        type: 'postgres',
+        url: config.get('DATABASE_URL'),
+        entities: [Admin, Color, Customer],
+        synchronize: config.get('NODE_ENV') !== 'production',
+      }),
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService<Env, true>) => ({
+        store: await redisStore({ url: config.get('REDIS_URL') || '' }),
+        ttl: 300,
+      }),
+    }),
+    ColorsModule,
+    AuthModule,
+    CustomersModule,
+  ],
+  controllers: [AppController],
+})
+export class AppModule {}
