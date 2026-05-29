@@ -34,6 +34,27 @@
   color: var(--text-3);
 }
 
+.masterSearch {
+  flex-shrink: 0;
+  margin: var(--space-4) var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+}
+
+.masterSearch:focus {
+  border-color: var(--brand);
+}
+
+.masterSearch::placeholder {
+  color: var(--text-3);
+}
+
 .masterList {
   list-style: none;
   flex: 1;

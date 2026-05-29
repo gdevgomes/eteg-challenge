@@ -9,10 +9,10 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth/jwt-auth.guard';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { FindCustomersDto } from './dto/find-customers.dto';
 import { LookupCustomerDto } from './dto/lookup-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
@@ -39,8 +39,8 @@ export class CustomersController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  findAll(@Query() pagination: PaginationDto) {
-    return this.customersService.findAll(pagination);
+  findAll(@Query() query: FindCustomersDto) {
+    return this.customersService.findAll(query);
   }
 
   // @Get(':id')

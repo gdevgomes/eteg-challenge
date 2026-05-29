@@ -16,7 +16,7 @@ import { Color } from '../../entities/color.entity';
 import { Customer } from '../../entities/customer.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { FindCustomersDto } from './dto/find-customers.dto';
 
 const CPF_SECRET = 'test-secret';
 
@@ -41,8 +41,8 @@ const makeCustomer = (overrides?: Partial<Customer>): Customer => ({
   ...overrides,
 });
 
-const makePagination = (page = 1, limit = 20): PaginationDto =>
-  Object.assign(new PaginationDto(), { page, limit });
+const makeQuery = (page = 1, limit = 20, name?: string): FindCustomersDto =>
+  Object.assign(new FindCustomersDto(), { page, limit, name });
 
 describe('CustomersService', () => {
   let service: CustomersService;
@@ -73,7 +73,7 @@ describe('CustomersService', () => {
         },
         {
           provide: CACHE_MANAGER,
-          useValue: { get: jest.fn(), set: jest.fn() },
+          useValue: { get: jest.fn(), set: jest.fn(), clear: jest.fn() },
         },
       ],
     }).compile();
@@ -156,6 +156,12 @@ describe('CustomersService', () => {
       expect(result).not.toHaveProperty('cpfHash');
     });
 
+    it('clears the customers cache after creating', async () => {
+      await service.create(dto);
+
+      expect(cache.clear).toHaveBeenCalled();
+    });
+
     it('uses cached colors without hitting the database', async () => {
       cache.get.mockResolvedValue([mockColor]);
 
@@ -176,13 +182,47 @@ describe('CustomersService', () => {
   });
 
   describe('findAll', () => {
-    it('returns data, total, page and limit', async () => {
+    it('returns data, total, page and limit from repository', async () => {
       const customers = [makeCustomer()];
+      cache.get.mockResolvedValue(null);
       customersRepo.findAll.mockResolvedValue([customers, 1]);
 
-      const result = await service.findAll(makePagination(2, 10));
+      const result = await service.findAll(makeQuery(2, 10));
 
       expect(result).toEqual({ data: customers, total: 1, page: 2, limit: 10 });
+    });
+
+    it('returns cached result without hitting the repository', async () => {
+      const cached = { data: [makeCustomer()], total: 1, page: 1, limit: 20 };
+      cache.get.mockResolvedValue(cached);
+
+      const result = await service.findAll(makeQuery());
+
+      expect(result).toEqual(cached);
+      expect(customersRepo.findAll).not.toHaveBeenCalled();
+    });
+
+    it('stores result in cache on repository hit', async () => {
+      const customers = [makeCustomer()];
+      cache.get.mockResolvedValue(null);
+      customersRepo.findAll.mockResolvedValue([customers, 1]);
+
+      await service.findAll(makeQuery(1, 20));
+
+      expect(cache.set).toHaveBeenCalledWith(
+        'customers:1:20:',
+        { data: customers, total: 1, page: 1, limit: 20 },
+        60_000,
+      );
+    });
+
+    it('uses name as part of the cache key', async () => {
+      cache.get.mockResolvedValue(null);
+      customersRepo.findAll.mockResolvedValue([[makeCustomer()], 1]);
+
+      await service.findAll(makeQuery(1, 20, 'João'));
+
+      expect(cache.get).toHaveBeenCalledWith('customers:1:20:João');
     });
   });
 
@@ -242,6 +282,12 @@ describe('CustomersService', () => {
       const result = await service.edit(cpf, dto);
 
       expect(result).not.toHaveProperty('cpfHash');
+    });
+
+    it('clears the customers cache after editing', async () => {
+      await service.edit(cpf, dto);
+
+      expect(cache.clear).toHaveBeenCalled();
     });
   });
 

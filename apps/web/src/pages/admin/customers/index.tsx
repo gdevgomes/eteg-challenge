@@ -3,8 +3,17 @@ import type { Customer } from '../../../services/api'
 import './customers.css'
 
 export default function AdminCustomersPage() {
-  const { customers, selected, onSelectCustomer, meta, totalPages, onPrevPage, onNextPage } =
-    useAdminCustomersViewModel()
+  const {
+    customers,
+    selected,
+    onSelectCustomer,
+    name,
+    onNameChange,
+    meta,
+    totalPages,
+    onPrevPage,
+    onNextPage,
+  } = useAdminCustomersViewModel()
 
   return (
     <div className="customersPage">
@@ -13,6 +22,14 @@ export default function AdminCustomersPage() {
           <h1 className="masterTitle">{"Clientes"}</h1>
           <span className="masterCount">{meta.total} registros</span>
         </div>
+
+        <input
+          className="masterSearch"
+          type="search"
+          placeholder="Filtrar por nome"
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+        />
 
         {meta.error && <p className="masterError">{meta.error}</p>}
 

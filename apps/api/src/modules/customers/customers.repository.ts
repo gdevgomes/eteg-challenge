@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { ILike, Repository } from 'typeorm';
 import { Customer } from '../../entities/customer.entity';
+import { FindCustomersDto } from './dto/find-customers.dto';
 
 @Injectable()
 export class CustomersRepository {
@@ -11,11 +11,13 @@ export class CustomersRepository {
     private readonly repo: Repository<Customer>,
   ) {}
 
-  findAll(pagination: PaginationDto): Promise<[Customer[], number]> {
+  findAll(query: FindCustomersDto): Promise<[Customer[], number]> {
+    const name = query.name?.trim();
     return this.repo.findAndCount({
+      where: name ? { fullName: ILike(`%${name}%`) } : {},
       relations: { color: true },
-      skip: pagination.skip,
-      take: pagination.limit,
+      skip: query.skip,
+      take: query.limit,
       order: { createdAt: 'DESC' },
     });
   }

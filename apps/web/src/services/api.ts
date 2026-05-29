@@ -104,8 +104,14 @@ export function createCustomer(payload: CreateCustomerPayload): Promise<Customer
   })
 }
 
-export function getCustomers(page = 1, limit = 20): Promise<PaginatedCustomers> {
-  return apiFetch(`/customers?page=${page}&limit=${limit}`)
+export function getCustomers(
+  page = 1,
+  limit = 20,
+  name?: string,
+): Promise<PaginatedCustomers> {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (name?.trim()) params.set('name', name.trim())
+  return apiFetch(`/customers?${params.toString()}`)
 }
 
 export function updateCustomer(payload: UpdateCustomerPayload): Promise<Customer> {

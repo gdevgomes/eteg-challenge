@@ -4,7 +4,7 @@ import { CustomersController } from './customers.controller';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { FindCustomersDto } from './dto/find-customers.dto';
 
 describe('CustomersController', () => {
   let controller: CustomersController;
@@ -68,14 +68,23 @@ describe('CustomersController', () => {
     expect(service.edit).toHaveBeenCalledWith(cpf, dto);
   });
 
-  it('findAll delegates pagination to service.findAll', () => {
-    const pagination = Object.assign(new PaginationDto(), {
-      page: 2,
-      limit: 10,
+  it('findAll delegates query to service.findAll', () => {
+    const query = Object.assign(new FindCustomersDto(), { page: 2, limit: 10 });
+
+    controller.findAll(query);
+
+    expect(service.findAll).toHaveBeenCalledWith(query);
+  });
+
+  it('findAll passes name filter to service.findAll', () => {
+    const query = Object.assign(new FindCustomersDto(), {
+      page: 1,
+      limit: 20,
+      name: 'João',
     });
 
-    controller.findAll(pagination);
+    controller.findAll(query);
 
-    expect(service.findAll).toHaveBeenCalledWith(pagination);
+    expect(service.findAll).toHaveBeenCalledWith(query);
   });
 });

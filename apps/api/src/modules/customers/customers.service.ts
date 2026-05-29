@@ -15,9 +15,9 @@ import { Env } from '../../config/env';
 import { Color } from '../../entities/color.entity';
 import { Customer } from '../../entities/customer.entity';
 import { CustomersRepository } from './customers.repository';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CustomerResponseDto } from './dto/customer-response.dto';
+import { FindCustomersDto } from './dto/find-customers.dto';
 import { LookupCustomerDto } from './dto/lookup-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
@@ -67,14 +67,26 @@ export class CustomersService {
       color,
     });
 
+    await this.cacheManager.clear();
     return this.toResponse(customer);
   }
 
   async findAll(
-    pagination: PaginationDto,
+    query: FindCustomersDto,
   ): Promise<{ data: Customer[]; total: number; page: number; limit: number }> {
-    const [data, total] = await this.customersRepository.findAll(pagination);
-    return { data, total, page: pagination.page, limit: pagination.limit };
+    const cacheKey = `customers:${query.page}:${query.limit}:${query.name ?? ''}`;
+    const cached = await this.cacheManager.get<{
+      data: Customer[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(cacheKey);
+    if (cached) return cached;
+
+    const [data, total] = await this.customersRepository.findAll(query);
+    const result = { data, total, page: query.page, limit: query.limit };
+    await this.cacheManager.set(cacheKey, result, 60_000);
+    return result;
   }
 
   async edit(
@@ -108,6 +120,7 @@ export class CustomersService {
       color,
     });
 
+    await this.cacheManager.clear();
     return this.toResponse(updated);
   }
 
