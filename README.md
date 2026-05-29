@@ -2,14 +2,15 @@
 
 Formulário de cadastro de clientes com painel administrativo — monorepo TypeScript full stack.
 
-**Stack:** React 19 + Vite · NestJS 11 · PostgreSQL 16 · Redis 7 · Docker
+## Stack
 
----
-
-## Pré-requisitos
-
-- [Docker](https://docs.docker.com/get-docker/) 20+
-- [Docker Compose](https://docs.docker.com/compose/) v2
+| Camada | Tecnologia |
+| --- | --- |
+| Frontend | React 19 + Vite + TypeScript |
+| Backend | NestJS 11 + TypeScript |
+| Banco de dados | PostgreSQL 16 |
+| Cache | Redis 7 |
+| Monorepo / Infra | Turborepo + Docker |
 
 ---
 
