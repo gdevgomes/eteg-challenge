@@ -29,10 +29,20 @@ import { CustomersModule } from './modules/customers/customers.module';
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
-      useFactory: async (config: ConfigService<Env, true>) => ({
-        store: await redisStore({ url: config.get('REDIS_URL') || '' }),
-        ttl: 300,
-      }),
+      useFactory: async (config: ConfigService<Env, true>) => {
+        // ioredis não reconhece a chave `url` em options — é preciso passar
+        // host/port. Parseamos o REDIS_URL para funcionar tanto no host (dev,
+        // localhost) quanto entre containers (prod, hostname `redis`).
+        const redisUrl = new URL(config.get('REDIS_URL'));
+        return {
+          store: await redisStore({
+            host: redisUrl.hostname,
+            port: Number(redisUrl.port) || 6379,
+            ...(redisUrl.password ? { password: redisUrl.password } : {}),
+          }),
+          ttl: 300,
+        };
+      },
     }),
     ColorsModule,
     AuthModule,

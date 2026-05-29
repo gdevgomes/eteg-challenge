@@ -4,17 +4,15 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:up": "docker compose up -d && npm run db:migrate -w api && npm run db:seed -w api",
+    "dev:up": "docker compose up -d",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "db:migrate": "npm run db:migrate -w api",
     "db:seed": "npm run db:seed -w api",
     "db:seed:colors": "npm run db:seed:colors -w api",
     "db:seed:admin": "npm run db:seed:admin -w api",
     "db:seed:customers": "npm run db:seed:customers -w api",
-    "db:reset": "docker compose down -v && docker compose up -d && sleep 3 && npm run db:migrate -w api && npm run db:seed -w api",
-    "db:migrate:dev": "npm run -w api prisma:migrate:dev",
+    "db:reset": "docker compose down -v && docker compose up -d",
     "build:local": "docker build --target api-prod -t eteg-api-prod . && docker run --network=host --env-file .env eteg-api-prod"
   },
   "devDependencies": {

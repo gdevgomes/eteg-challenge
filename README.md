@@ -25,24 +25,37 @@ cd eteg-challenge
 ### 2. Configure as variáveis de ambiente
 
 ```bash
-cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 ```
 
-Edite o `.env` se necessário — os valores padrão já funcionam para desenvolvimento local.
-
-### 3. Suba o ambiente
+### 3. Suba a infraestrutura (PostgreSQL + Redis)
 
 ```bash
-docker compose up --build
+docker compose up -d
 ```
 
-Na primeira execução o build leva alguns minutos. Nas próximas, use sem `--build`:
+O `docker-compose.yml` de desenvolvimento sobe apenas o banco e o Redis. Os apps rodam no host com hot reload.
+
+### 4. Instale as dependências e suba os apps
 
 ```bash
-docker compose up
+npm install
+npm run dev
 ```
 
-### 4. Acesse
+O `npm run dev` (Turborepo) sobe a API e o frontend em paralelo. Na primeira execução, a API cria as tabelas automaticamente (TypeORM `synchronize`).
+
+### 5. Popule o banco (seed)
+
+Com a API já rodando, em **outro terminal**:
+
+```bash
+npm run db:seed
+```
+
+Cria as 7 cores, o usuário admin (`admin` / `admin`) e clientes de exemplo. Necessário para o dropdown de cores e o login do painel admin.
+
+### 6. Acesse
 
 | Serviço | URL |
 |---------|-----|
@@ -53,11 +66,26 @@ docker compose up
 
 ## Ambiente de produção
 
+```bash
+cp .env.example .env
+```
+
+No boot, a API roda as migrations e semeia apenas as cores. Para criar o admin do painel:
+
+```bash
+docker compose -f docker-compose.prod.local.yml exec api node dist/database/seed-admin
+```
+
 **Local** (inclui banco e Redis):
 
 ```bash
 docker compose -f docker-compose.prod.local.yml up --build
 ```
+
+| Serviço | URL |
+|---------|-----|
+| Frontend (Nginx) | http://localhost:8080 |
+| API | http://localhost:3000 |
 
 **Servidor** (banco e Redis externos, configurados no `.env`):
 
@@ -75,19 +103,15 @@ docker compose -f docker-compose.prod.yml up --build
 ## Comandos úteis
 
 ```bash
-# Rebuild (obrigatório ao alterar package.json)
-docker compose up --build
-
-# Derrubar containers e limpar volumes
+# Derrubar a infra e limpar o volume do banco
 docker compose down -v
 
-# Reset completo do banco (derruba, sobe, migra e faz seed)
+# Reset do banco (recria o volume; rode o seed depois)
 npm run db:reset
 
-# Seed manual do banco
-npm run db:seed -w api
+# Seed do banco (cores, admin e clientes) — requer a API já rodada uma vez
+npm run db:seed
 
-# Logs de um serviço específico
-docker compose logs -f api
-docker compose logs -f web
+# Logs da infra
+docker compose logs -f postgres redis
 ```

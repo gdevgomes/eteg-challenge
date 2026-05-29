@@ -1,6 +1,6 @@
 # Se alterar package.json ou package-lock.json, rode: docker compose up --build
 
-FROM node:24-alpine AS base
+FROM node:24-slim AS base
 
 # ─── Pruners ────────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ COPY --from=pruner-api /app/out/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 COPY --from=api-builder /app/apps/api/dist ./apps/api/dist
 WORKDIR /app/apps/api
-CMD ["sh", "-c", "node dist/database/seed-colors && node dist/main"]
+CMD ["sh", "-c", "npm run migration:run:prod && node dist/database/seed-colors && node dist/main"]
 
 # ─── Web ────────────────────────────────────────────────────────────────────
 

@@ -1,38 +1,34 @@
 # Status do Projeto — eteg-challenge
 
-> Última atualização: 2026-05-27
+> Última atualização: 2026-05-28
 
 ## O que está feito
 
 ### Infraestrutura
 - [x] Monorepo com Turborepo + npm workspaces
-- [x] `Dockerfile` único na raiz com multi-stage (dev e prod) para api, web e docs
-- [x] `docker-compose.yml` — ambiente de desenvolvimento (hot reload, volumes montados)
-- [x] `docker-compose.prod.yml` — ambiente de produção (nginx, builds otimizados)
-- [x] PostgreSQL 16 + Redis 7 no docker-compose
-- [x] Scripts no `package.json` raiz: `docker:build:*`, `db:migrate`, `db:seed`, `db:setup`, `db:reset`
+- [x] `Dockerfile` único na raiz com multi-stage (dev e prod) para api e web
+- [x] `docker-compose.yml` — dev: sobe apenas PostgreSQL 16 + Redis 7 (apps rodam no host via `npm run dev`)
+- [x] `docker-compose.prod.local.yml` — produção local com banco e redis embutidos
+- [x] `docker-compose.prod.yml` — produção (nginx, builds otimizados, banco e redis externos)
+- [x] Scripts no `package.json` raiz: `dev:up`, `db:seed`, `db:seed:colors`, `db:seed:admin`, `db:seed:customers`, `db:reset`
 - [x] `CLAUDE.md` e `CLAUDE.local.md` configurados
 - [x] `.env` e `.env.example` com todas as variáveis necessárias
 
 ### Banco de dados
 - [x] Entidades TypeORM: `Color`, `Customer`, `Admin` em `src/entities/`
-- [x] Seed com 7 cores do arco-íris (upsert idempotente) via `npm run db:seed -w api`
+- [x] Seed via `npm run db:seed` (idempotente — só insere se não existir): 7 cores, admin e 77 clientes fake. Clientes **só em dev** (guard de `NODE_ENV` + faker é devDependency). Seeds individuais: `db:seed:colors`, `db:seed:admin`, `db:seed:customers`
 - [x] CPF modelado em 3 campos: `cpfStart`, `cpfEnd`, `cpfHash` (HMAC-SHA256)
+- [x] Migrations (TypeORM): DataSource em `src/database/data-source.ts`, migration inicial em `src/database/migrations/`. Em prod o `api-prod` roda `migration:run` no boot (dev usa `synchronize`)
 
 ### Apps
 - [x] `apps/api` — NestJS 11 + TypeScript strict + TypeORM
 - [x] `apps/web` — React 19 + Vite + TypeScript
-- [x] `apps/docs` — React 19 + Vite + TypeScript
 
 ## Próximos passos
 
-1. **Rodar migration** — `npm run db:setup` (postgres precisa estar rodando)
-2. **Módulo de cadastro na API** — `POST /clientes` com validação e hash do CPF
-3. **Módulo de autenticação** — login admin com JWT
-4. **Módulo admin na API** — `GET /clientes` e `GET /clientes/:id`
-5. **Frontend web** — formulário de cadastro público (`/`)
-6. **Frontend admin** — login + master-detail (`/admin`)
-7. **Primeiro commit**
+1. **Frontend web** — formulário de cadastro público (`/`)
+2. **Frontend admin** — login + master-detail (`/admin`)
+3. **Avaliar admin em produção** — hoje o `api-prod` semeia só cores; admin via `node dist/database/seed-admin` sob demanda
 
 ## Decisões técnicas tomadas
 
@@ -43,13 +39,14 @@
 | Cores | Tabela separada | Flexível para adicionar/remover sem alterar schema |
 | Auth admin | JWT + tabela Admin no banco | Requisito definido pelo dev |
 | Monorepo | Turborepo com `turbo prune` no Docker | Imagens menores, cache eficiente |
+| Base Docker | `node:24-slim` (glibc) | Evita falha do binding nativo do vite 8/rolldown no Alpine (musl) |
+| Schema em prod | Migrations TypeORM no boot | `synchronize` off em prod; migration cria as tabelas |
 
 ## Portas
 
 | Serviço | Dev | Prod |
 |---------|-----|------|
 | api | 3000 | 3000 |
-| web | 5173 | 80 |
-| docs | 5174 | 5174 |
-| postgres | 5432 | 5432 |
-| redis | 6379 | 6379 |
+| web | 5173 | 80 (8080 no prod local) |
+| postgres | 5432 | interno |
+| redis | 6379 | interno |

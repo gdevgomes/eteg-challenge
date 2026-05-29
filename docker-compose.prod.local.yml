@@ -46,7 +46,7 @@ services:
     container_name: eteg_web
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - api
 

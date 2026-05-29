@@ -28,61 +28,61 @@ async function main() {
   await dataSource.initialize();
 
   const colorRepo = dataSource.getRepository(Color);
-  for (const color of colors) {
-    const exists = await colorRepo.findOne({ where: { name: color.name } });
-    if (!exists) await colorRepo.save(colorRepo.create(color));
+  if ((await colorRepo.count()) === 0) {
+    for (const color of colors) await colorRepo.save(colorRepo.create(color));
+    console.log('Seed: 7 rainbow colors inserted.');
+  } else {
+    console.log('Seed: colors already exist, skipped.');
   }
-  console.log('Seed: 7 rainbow colors inserted.');
 
   const adminRepo = dataSource.getRepository(Admin);
-  const adminExists = await adminRepo.findOne({ where: { username: 'admin' } });
-  if (!adminExists) {
+  if (!(await adminRepo.findOne({ where: { username: 'admin' } }))) {
     const passwordHash = await bcrypt.hash('admin', 10);
     await adminRepo.save(adminRepo.create({ username: 'admin', passwordHash }));
+    console.log('Seed: admin user created (username: admin, password: admin).');
+  } else {
+    console.log('Seed: admin already exists, skipped.');
   }
-  console.log('Seed: admin user created (username: admin, password: admin).');
 
-  const allColors = await colorRepo.find();
   const customerRepo = dataSource.getRepository(Customer);
-  const secret = process.env.CPF_HASH_SECRET ?? 'seed-secret';
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Seed: customers seed runs only in development, skipping.');
+  } else if ((await customerRepo.count()) === 0) {
+    const allColors = await colorRepo.find();
+    const secret = process.env.CPF_HASH_SECRET ?? 'seed-secret';
+    const usedCpfs = new Set<string>();
+    const usedEmails = new Set<string>();
+    let inserted = 0;
 
-  let inserted = 0;
-  const usedCpfs = new Set<string>();
-  const usedEmails = new Set<string>();
+    while (inserted < 77) {
+      const digits = faker.string.numeric(9);
+      if (usedCpfs.has(digits)) continue;
+      usedCpfs.add(digits);
 
-  while (inserted < 77) {
-    const digits = faker.string.numeric(9);
-    if (usedCpfs.has(digits)) continue;
-    usedCpfs.add(digits);
+      const email = faker.internet.email();
+      if (usedEmails.has(email)) continue;
+      usedEmails.add(email);
 
-    const cpfHash = createHmac('sha256', secret).update(digits).digest('hex');
-    const exists = await customerRepo.findOne({ where: { cpfHash } });
-    if (exists) continue;
+      const cpfHash = createHmac('sha256', secret).update(digits).digest('hex');
+      const color = allColors[Math.floor(Math.random() * allColors.length)];
 
-    const email = faker.internet.email();
-    if (usedEmails.has(email)) continue;
-    usedEmails.add(email);
-
-    const emailExists = await customerRepo.findOne({ where: { email } });
-    if (emailExists) continue;
-
-    const color = allColors[Math.floor(Math.random() * allColors.length)];
-
-    await customerRepo.save(
-      customerRepo.create({
-        fullName: faker.person.fullName(),
-        cpfStart: digits.slice(0, 3),
-        cpfEnd: digits.slice(-2),
-        cpfHash,
-        email,
-        notes: Math.random() < 0.3 ? faker.lorem.sentence() : null,
-        color,
-      }),
-    );
-    inserted++;
+      await customerRepo.save(
+        customerRepo.create({
+          fullName: faker.person.fullName(),
+          cpfStart: digits.slice(0, 3),
+          cpfEnd: digits.slice(-2),
+          cpfHash,
+          email,
+          notes: Math.random() < 0.3 ? faker.lorem.sentence() : null,
+          color,
+        }),
+      );
+      inserted++;
+    }
+    console.log(`Seed: ${inserted} customers inserted.`);
+  } else {
+    console.log('Seed: customers already exist, skipped.');
   }
-
-  console.log(`Seed: ${inserted} customers inserted.`);
 }
 
 main()

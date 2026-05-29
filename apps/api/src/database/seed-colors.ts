@@ -1,11 +1,14 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { Color } from '../entities/color.entity';
+import { Customer } from '../entities/customer.entity';
 
 const dataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Color],
+  // Customer é necessário porque Color tem relação OneToMany com Customer —
+  // sem ela o TypeORM não resolve a metadata de Color#customers.
+  entities: [Color, Customer],
   synchronize: false,
 });
 
@@ -22,11 +25,12 @@ const colors = [
 async function main() {
   await dataSource.initialize();
   const repo = dataSource.getRepository(Color);
-  for (const color of colors) {
-    const exists = await repo.findOne({ where: { name: color.name } });
-    if (!exists) await repo.save(repo.create(color));
+  if ((await repo.count()) === 0) {
+    for (const color of colors) await repo.save(repo.create(color));
+    console.log('Seed: 7 rainbow colors inserted.');
+  } else {
+    console.log('Seed: colors already exist, skipped.');
   }
-  console.log('Seed: 7 rainbow colors inserted.');
 }
 
 main()
